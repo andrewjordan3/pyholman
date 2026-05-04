@@ -1,0 +1,234 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+###############################################################################
+# [project] - CORE PACKAGE METADATA
+###############################################################################
+[project]
+name = "pyholman"
+version = "0.1.0"
+description = "Typed Python client for Holman's Customer Data API, with OAuth2 token management, retry-aware transport, and pandas-friendly response helpers."
+readme = "README.md"
+authors = [{ name = "Andrew Jordan", email = "andrewjordan3@gmail.com" }]
+maintainers = [{ name = "Andrew Jordan", email = "andrewjordan3@gmail.com" }]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+keywords = [
+    "holman",
+    "fleet-management",
+    "api-client",
+    "oauth2",
+    "httpx",
+    "pydantic",
+    "pandas",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Clients",
+    "Typing :: Typed",
+]
+
+# Core runtime dependencies
+dependencies = [
+    "atomicwrites>=1.4.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "httpx>=0.28.0",
+    "tenacity>=9.1.0",
+]
+
+# Python version requirements
+requires-python = ">=3.13"
+
+# Optional dependency groups
+[project.optional-dependencies]
+system-certs = [
+    "truststore>=0.10.0",
+] # For users who need to use system certificate stores on Windows or macOS
+
+# Mirrored from ``[dependency-groups].dev`` (PEP 735) so that
+# ``pip install -e '.[dev]'`` works for contributors who are not on
+# ``uv``. Both sections must stay in sync — pip ≥ 25.x can read
+# ``--group dev`` directly, but older pip and the bare ``.[dev]`` extras
+# syntax need this mirror. ``uv sync --group dev`` continues to use the
+# PEP 735 section below.
+dev = [
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pandas_stubs>=2.3.0",
+    "types-pyyaml>=6.0.12",
+]
+
+[dependency-groups]
+# Development dependencies
+dev = [
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pandas_stubs>=2.3.0",
+    "types-pyyaml>=6.0.12",
+]
+
+# Project URLs
+[project.urls]
+Homepage = "https://github.com/andrewjordan3/pyholman"
+Repository = "https://github.com/andrewjordan3/pyholman"
+Issues = "https://github.com/andrewjordan3/pyholman/issues"
+
+###############################################################################
+# [tool.setuptools] - PACKAGE DISCOVERY
+###############################################################################
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pyholman*"]
+exclude = ["tests*", "docs*"]
+
+# Ship the PEP 561 marker file so external mypy / pyright runs honor the
+# in-package type annotations instead of treating every import as ``Any``.
+[tool.setuptools.package-data]
+pyholman = ["py.typed"]
+
+###############################################################################
+# [tool.ruff] - LINTING AND FORMATTING
+###############################################################################
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "T10", # flake8-debugger
+    "SIM", # flake8-simplify
+    "PTH", # flake8-use-pathlib
+    "PL",  # pylint
+    "RUF", # ruff-specific rules
+    "PGH", # pygrep-hooks (requires error code for type ignores)
+    "G",   # flake8-logging-format (Enforces lazy logging %s over f-strings)
+    "N",   # pep8-naming
+    "PT",  # flake8-pytest-style (Test suite consistency)
+]
+
+ignore = [
+    "E501", # Line too long (handled by ruff format)
+    "E203", # Whitespace before ':' (conflicts with formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyholman"]
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+# Test files routinely compare against literal expected values (HTTP
+# status codes, counts, numeric constants from the code under test).
+# Requiring named constants for every one of those would obscure intent
+# without improving correctness — the standard pytest convention.
+"tests/**" = ["PLR2004"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+###############################################################################
+# [tool.mypy] - STATIC TYPE CHECKING
+###############################################################################
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+exclude = ["tests/"]
+
+# Ignore missing imports for third-party libraries without stubs
+[[tool.mypy.overrides]]
+module = ["atomicwrites", "pandas.*", "pyarrow.*", "truststore.*"]
+ignore_missing_imports = true
+
+###############################################################################
+# PYRIGHT - FOR VS CODE PYLANCE
+###############################################################################
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules", "**/__pycache__", "**/.*", ".venv"]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+
+###############################################################################
+# PYTEST - TESTING
+###############################################################################
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+]
+
+###############################################################################
+# COVERAGE
+###############################################################################
+[tool.coverage.run]
+source = ["src/pyholman"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/site-packages/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]

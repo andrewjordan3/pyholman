@@ -1,0 +1,323 @@
+# user_config.yaml — example pyholman configuration.
+#
+# Copy this file somewhere outside the repo, fill in real values, and point
+# pyholman at it via UserConfig.from_yaml(Path(...)). Validated against the
+# Pydantic models in src/pyholman/_config/ on load; typos in field names
+# raise a ValidationError naming the offending field.
+#
+# Required sections: credentials, api, fleet. Every other section is
+# optional — omit it and pyholman uses the defaults documented inline. The
+# commented-out lines below show each default value in place; uncomment
+# only the ones you want to override.
+
+
+# =============================================================================
+# HOLMAN API CREDENTIALS  [required]
+# =============================================================================
+# The client_id is a non-secret identifier safe to commit. The client_secret
+# is read from the HOLMAN_CLIENT_SECRET environment variable at load time
+# and is deliberately not represented in this YAML — keeping it out of files
+# prevents accidental commits and log leaks.
+#
+# Setting the environment variable:
+#   bash / zsh:   export HOLMAN_CLIENT_SECRET='your-secret'
+#   PowerShell:   $env:HOLMAN_CLIENT_SECRET = 'your-secret'
+# =============================================================================
+
+credentials:
+  # Issued by Holman's Client Technology team via SFTP.
+  # Format: 'cust-api.org-NNNN.user-<32-char-hex>'
+  client_id: 'cust-api.org-XXXX.user-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+
+# =============================================================================
+# HOLMAN API ENDPOINT  [required header; every key is optional]
+# =============================================================================
+# Base URL for all API calls.
+#   Production: https://api.holman.solutions  (default)
+#   QA (stg):   https://api.stg.holman.solutions
+#
+# page_size: items requested per paginated call. Holman's developer guide
+# documents a default of 200 and a server-side cap of 1000. Lower values
+# multiply round-trips without changing total latency meaningfully; raise
+# it only if your endpoint's per-item size is small enough that a bigger
+# page stays comfortably under Holman's response-size limits.
+#
+# use_truststore: when true, pyholman's HTTP client trusts the host OS's
+# certificate store (via the ``truststore`` package) instead of the
+# bundled ``certifi`` roots. Flip this to true on machines sitting behind
+# an MITM corporate proxy (Zscaler, for example) that presents an
+# internally-signed certificate; leave false in environments with a
+# direct internet path.
+# =============================================================================
+
+api:
+  # Default: 'https://api.holman.solutions'. Override only for QA.
+  # base_url: 'https://api.stg.holman.solutions'
+  page_size: 200
+  use_truststore: false
+
+
+# =============================================================================
+# FLEET SCOPE  [required]
+# =============================================================================
+# Lessee codes this pyholman user is authorized to query. Holman scopes
+# permissions per user; a code outside your authorization returns empty
+# results rather than an error, which can mask misconfiguration.
+# =============================================================================
+
+fleet:
+  # Organization ID assigned by Holman. pyholman merges this into the
+  # lessee_codes list at config-load time — Holman's API rejects queries
+  # containing only child lessee codes without their parent. Downstream
+  # code sees a single unified list; this key is a convenience for YAML
+  # readability only.
+  #
+  # Omit only if your Holman user has no separate org ID (uncommon;
+  # delete the line or set to null).
+  organization_id: XXXX
+
+  # Specific lessee codes authorized for this user. Codes are normalized
+  # to uppercase, deduplicated, and sorted on load. Each code must be
+  # exactly 4 characters.
+  lessee_codes:
+    - 'XXXX'
+
+
+# =============================================================================
+# WORKING DIRECTORY  [optional — default shown]
+# =============================================================================
+# Root directory for pyholman data files and metadata sidecars. Per-resource
+# subtrees are created under this path on first write. Tilde is expanded
+# and relative paths resolve from the current working directory at load
+# time. Default is ``<cwd>/pyholman_data``, resolved at load time. Prefer
+# an absolute path for scheduled jobs whose cwd may change.
+#
+# Windows paths inside YAML strings need either escaped backslashes
+# ('C:\\Users\\you\\pyholman_data') or forward slashes
+# ('C:/Users/you/pyholman_data'); a single backslash is a YAML escape
+# character.
+# =============================================================================
+
+# working_directory: '~/pyholman_data'
+
+
+# =============================================================================
+# OUTPUT  [optional — defaults shown]
+# =============================================================================
+# Serialization format for data files written under ``working_directory``.
+# =============================================================================
+
+# output:
+#   # Output format. Default: parquet.
+#   # - parquet: columnar, compressed, preserves dtypes.
+#   # - csv: text, portable, larger files, no dtype preservation.
+#   format: parquet
+#
+#   # Parquet compression codec. Omit or set null for uncompressed output.
+#   # Must be omitted when format: csv.
+#   # Allowed: snappy (default), gzip, brotli, zstd, lz4.
+#   compression: snappy
+
+
+# =============================================================================
+# INCREMENTAL UPDATES  [optional — default shown]
+# =============================================================================
+# Settings for incremental pulls against endpoints that support delta queries
+# (maintenance, vehicles, etc.). These values are read by the orchestrators
+# that compose the HTTP client with on-disk storage; they are not used for
+# one-shot full-refresh runs.
+# =============================================================================
+
+# incremental:
+#   # How far back to look for late-arriving or corrected records, in days.
+#   # The refresh window anchors to the most recent record already on disk,
+#   # not today's date — a cron that misses a run still catches every record
+#   # in the window on the next successful run.
+#   #
+#   # Default: 7 (sensible for weekly cadences). Set to 1 for nightly cron
+#   # jobs that don't need a longer late-arrival window.
+#   lookback_days: 7
+#
+#   # Optional hard floor for the refresh window. Project-level — applies
+#   # unconditionally to every incremental resource on every run, whether
+#   # or not a per-resource ``filters.last_change_date`` is also set. The
+#   # window never starts earlier than this date.
+#   #
+#   # Participates in window resolution alongside the prior watermark
+#   # (``most_recent_record_utc - lookback_days``) and any per-resource
+#   # ``filters.last_change_date`` cursor. The most recent of those
+#   # candidates wins; ``earliest_date`` clamps the result up if it sits
+#   # above the winner. On a bootstrap run with no other inputs,
+#   # ``earliest_date`` alone drives the window.
+#   #
+#   # On a steady-state run, when ``earliest_date`` is more recent than
+#   # the prior-watermark window, the next pull skips the interval
+#   # between the latest record on disk and ``earliest_date``. pyholman
+#   # logs a WARNING describing the gap and the recovery (remove or
+#   # lower the floor) so a deliberate truncation is visible and an
+#   # accidental one is correctable. The run still proceeds — the floor
+#   # is treated as the user's stated intent.
+#   #
+#   # Useful when Holman's retention policy means queries older than a
+#   # certain date return empty results, or when you want to bound a
+#   # backfill.
+#   #
+#   # Omit or set null for no floor.
+#   earliest_date: null
+
+
+# =============================================================================
+# RETRY POLICY  [optional — defaults shown]
+# =============================================================================
+# Retry budget for transient HTTP failures (timeouts, 5xx, rate limits).
+# Adjust these only if your deployment experiences a retry profile the
+# defaults don't cover: shorten ``max_attempts`` for interactive tooling
+# that must fail fast, raise ``backoff_max_seconds`` on links known to
+# benefit from longer recovery windows.
+# =============================================================================
+
+# retry:
+#   # Total attempts including the initial try. 1 disables retries entirely.
+#   max_attempts: 5
+#
+#   # Upper bound on the exponential wait between retries, in seconds.
+#   # The wait grows as 2 ** (attempt - 1) and is clamped to this value.
+#   backoff_max_seconds: 60.0
+
+
+# =============================================================================
+# RESOURCES  [required — at least one entry]
+# =============================================================================
+# Per-endpoint resources to pull. ``UserConfig.resources`` requires at least
+# one entry; configurations with an empty or missing ``resources:`` section
+# are rejected at load time. Each entry's ``name`` is the endpoint
+# discriminator; valid names are: vehicles, maintenance_purchase_orders,
+# contacts, odometer, engine_hours.
+#
+# ``incremental: true`` opts the resource into delta queries — only valid
+# for the three endpoints whose response model declares a watermark column
+# (vehicles, maintenance_purchase_orders, contacts). Snapshot-only
+# endpoints (odometer, engine_hours) reject ``incremental: true`` at load
+# time.
+#
+# Per-endpoint ``filters:`` blocks are optional and validated strictly
+# against the endpoint's filter schema. Every supported filter for every
+# endpoint is enumerated below; comment out (or delete) the entries you
+# don't need. ``extra='forbid'`` is inherited from the filter base, so
+# any key not listed here will be rejected at config load.
+# =============================================================================
+
+resources:
+  # ---------------------------------------------------------------------------
+  # vehicles  [incremental-capable]
+  # ---------------------------------------------------------------------------
+  # Watermark column: lastChangeDate. Returns the full vehicle record
+  # (100+ fields covering identification, lease, telematics, location,
+  # and assignment).
+  - name: vehicles
+    incremental: true
+    # filters:
+    #   # Optional cursor for delta queries. Must be a tz-aware UTC
+    #   # datetime — naive or non-UTC values are rejected. Participates
+    #   # in window resolution alongside ``incremental.earliest_date``
+    #   # and (on steady-state runs) the prior watermark minus
+    #   # ``lookback_days``. The more recent of those candidates wins,
+    #   # then the result is clamped up to ``earliest_date`` if that
+    #   # floor is set. On a bootstrap run with no other inputs this
+    #   # value drives the window directly.
+    #   last_change_date: '2024-01-01T00:00:00Z'
+    #
+    #   # Optional Holman statusCodes to include in the result. Valid
+    #   # entries: 0 = ordered, 1 = active, 2 = out-of-service, 3 = sold.
+    #   # Any other value is rejected before the request is built. Omit
+    #   # for "no status filter" (all four codes returned).
+    #   status_codes: [0, 1, 2, 3]
+    #
+    # Note: ``sold_date_code`` is computed automatically from
+    # ``status_codes`` (5 = "all sold assets" when 3 is included; None
+    # otherwise) and is not user-configurable.
+
+  # ---------------------------------------------------------------------------
+  # maintenance_purchase_orders  [incremental-capable]
+  # ---------------------------------------------------------------------------
+  # Watermark column: lastChangeDate. Returns one row per PO line on
+  # closed work orders; rows joined back to a vehicle by
+  # holmanVehicleNumber.
+  # - name: maintenance_purchase_orders
+  #   incremental: true
+  #   filters:
+  #     # Optional cursor for delta queries. Must be a tz-aware UTC
+  #     # datetime — naive or non-UTC values are rejected. Participates
+  #     # in window resolution alongside ``incremental.earliest_date``
+  #     # and (on steady-state runs) the prior watermark minus
+  #     # ``lookback_days``. The more recent of those candidates wins,
+  #     # then the result is clamped up to ``earliest_date`` if that
+  #     # floor is set. On a bootstrap run with no other inputs this
+  #     # value drives the window directly.
+  #     last_change_date: '2024-01-01T00:00:00Z'
+
+  # ---------------------------------------------------------------------------
+  # contacts  [incremental-capable]
+  # ---------------------------------------------------------------------------
+  # Watermark column: lastChangeDate. Returns the per-vehicle assigned
+  # driver and contact details.
+  # - name: contacts
+  #   incremental: true
+  #   filters:
+  #     # Optional cursor for delta queries. Must be a tz-aware UTC
+  #     # datetime — naive or non-UTC values are rejected. Participates
+  #     # in window resolution alongside ``incremental.earliest_date``
+  #     # and (on steady-state runs) the prior watermark minus
+  #     # ``lookback_days``. The more recent of those candidates wins,
+  #     # then the result is clamped up to ``earliest_date`` if that
+  #     # floor is set. On a bootstrap run with no other inputs this
+  #     # value drives the window directly.
+  #     last_change_date: '2024-01-01T00:00:00Z'
+  #
+  # Deferred filters (rejected by ``extra='forbid'`` if attempted):
+  # ``hire_date_code``, ``activation_date_code``,
+  # ``deactivation_date_code``, ``termination_date_code``. Pending a
+  # unified date-code abstraction.
+
+  # ---------------------------------------------------------------------------
+  # odometer  [snapshot-only]
+  # ---------------------------------------------------------------------------
+  # No watermark column. Returns the latest odometer reading per vehicle.
+  # ``incremental: true`` is rejected at config load. No supported
+  # filters today.
+  # - name: odometer
+  #   incremental: false
+
+  # ---------------------------------------------------------------------------
+  # engine_hours  [snapshot-only]
+  # ---------------------------------------------------------------------------
+  # No watermark column. Returns the latest engine-hour reading per
+  # vehicle. ``incremental: true`` is rejected at config load. No
+  # supported filters today.
+  # - name: engine_hours
+  #   incremental: false
+
+
+# =============================================================================
+# LOGGING  [optional — default shown]
+# =============================================================================
+# Console output is always enabled. File output is optional.
+# Levels accept DEBUG, INFO, WARNING, ERROR, CRITICAL (case-insensitive)
+# or the equivalent Python integer (10, 20, 30, 40, 50).
+# =============================================================================
+
+# logger:
+#   # Minimum level shown on the console (stderr). Default: WARNING.
+#   # Library convention is to stay quiet by default; the hosting
+#   # application opts into INFO/DEBUG when it wants progress output.
+#   console_level: WARNING
+#
+#   # Optional file output. Omit or set null to disable. Tilde is expanded;
+#   # relative paths resolve from the current working directory at runtime.
+#   # Prefer absolute paths for scheduled jobs.
+#   file_path: './logs/pyholman.log'
+#
+#   # If file_path is set and file_level is omitted, defaults to DEBUG —
+#   # the file always captures more detail than the console.
+#   file_level: DEBUG
