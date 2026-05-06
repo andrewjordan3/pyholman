@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from pyholman._yaml import load_yaml_from_path, parse_yaml_to_dict
+from tests._helpers.env import patch_home_directory
 
 __all__: list[str] = []
 
@@ -81,7 +82,7 @@ class TestLoadYamlFromPath:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        monkeypatch.setenv('HOME', str(tmp_path))
+        patch_home_directory(monkeypatch, tmp_path)
         config_file: Path = tmp_path / 'config.yaml'
         config_file.write_text('alpha: 1\n')
 
@@ -94,7 +95,11 @@ class TestLoadYamlFromPath:
         missing_file: Path = tmp_path / 'nope.yaml'
         with pytest.raises(FileNotFoundError) as excinfo:
             load_yaml_from_path(missing_file)
-        assert str(missing_file) in str(excinfo.value)
+        # ``OSError.__str__`` formats ``filename`` via ``repr()`` (which
+        # doubles backslashes on Windows), so substring-matching the
+        # rendered message is platform-dependent. The structured
+        # ``filename`` attribute holds the raw path on every platform.
+        assert excinfo.value.filename == str(missing_file)
 
     def test_accepts_string_path(self, tmp_path: Path) -> None:
         config_file: Path = tmp_path / 'config.yaml'

@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from pyholman._config import LoggerConfig
+from tests._helpers.env import patch_home_directory
 
 __all__: list[str] = []
 
@@ -83,7 +84,7 @@ class TestLoggerConfigFileOutput:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        monkeypatch.setenv('HOME', str(tmp_path))
+        patch_home_directory(monkeypatch, tmp_path)
         config: LoggerConfig = LoggerConfig(
             console_level='INFO',
             file_path='~/logs/foo.log',

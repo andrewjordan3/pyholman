@@ -2,6 +2,7 @@
 """Tests for the atomic CSV reader/writer."""
 
 import os
+import re
 import warnings
 from pathlib import Path
 from typing import Any
@@ -51,17 +52,17 @@ class TestRoundTrip:
                 == source_frame[column_name].astype(str).tolist()
             )
 
-        # Document the dtypes pandas.read_csv infers for this fixture so
-        # silent behavior changes are surfaced as test failures.
-        inferred_dtypes: dict[str, str] = {
-            name: str(dtype) for name, dtype in restored_frame.dtypes.items()
-        }
-        assert inferred_dtypes == {
-            'id': 'int64',
-            'name': 'str',
-            'score': 'float64',
-            'flag': 'bool',
-        }
+        # Document the categorical dtype shape pandas.read_csv infers
+        # for this fixture so silent behavior changes (int → object,
+        # bool → object, etc.) surface as failures. Compared via
+        # ``pd.api.types.is_*_dtype`` rather than exact label strings
+        # because the rendered label is platform- and version-dependent
+        # (numpy default int width on Windows, pandas 2.x vs 3.x string
+        # dtype).
+        assert pd.api.types.is_integer_dtype(restored_frame['id'])
+        assert pd.api.types.is_string_dtype(restored_frame['name'])
+        assert pd.api.types.is_float_dtype(restored_frame['score'])
+        assert pd.api.types.is_bool_dtype(restored_frame['flag'])
 
 
 class TestNoDtypeWarning:
@@ -227,7 +228,7 @@ class TestEmptyDataFrame:
         target_path: Path = tmp_path / 'empty.csv'
         empty_frame: pd.DataFrame = pd.DataFrame({'id': []})
 
-        with pytest.raises(ValueError, match=str(target_path)):
+        with pytest.raises(ValueError, match=re.escape(str(target_path))):
             _write_csv_file(dataframe=empty_frame, file_path=target_path)
 
         assert not target_path.exists()

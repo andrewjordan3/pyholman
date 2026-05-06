@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 ###############################################################################
 [project]
 name = "pyholman"
-version = "0.1.2"
+version = "0.1.3"
 description = "Typed Python client for Holman's Customer Data API, with OAuth2 token management, retry-aware transport, and pandas-friendly response helpers."
 readme = "README.md"
 authors = [{ name = "Andrew Jordan", email = "andrewjordan3@gmail.com" }]

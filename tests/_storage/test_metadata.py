@@ -3,6 +3,7 @@
 
 import importlib.metadata
 import json
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -222,7 +223,7 @@ class TestJsonRoundTrip:
         tmp_path: Path,
     ) -> None:
         missing_path: Path = tmp_path / 'no-such-sidecar.json'
-        with pytest.raises(FileNotFoundError, match=str(missing_path)):
+        with pytest.raises(FileNotFoundError, match=re.escape(str(missing_path))):
             StorageMetadata.from_json(missing_path)
 
 

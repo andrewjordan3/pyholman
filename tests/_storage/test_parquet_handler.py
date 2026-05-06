@@ -1,6 +1,7 @@
 # tests/_storage/test_parquet_handler.py
 """Tests for the atomic Parquet reader/writer."""
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -179,7 +180,7 @@ class TestEmptyDataFrame:
             {'int_col': pd.array([], dtype='Int64')}
         )
 
-        with pytest.raises(ValueError, match=str(target_path)):
+        with pytest.raises(ValueError, match=re.escape(str(target_path))):
             _write_parquet_file(
                 dataframe=empty_frame,
                 file_path=target_path,
