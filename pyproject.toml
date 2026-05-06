@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 ###############################################################################
 [project]
 name = "pyholman"
-version = "0.1.1"
+version = "0.1.2"
 description = "Typed Python client for Holman's Customer Data API, with OAuth2 token management, retry-aware transport, and pandas-friendly response helpers."
 readme = "README.md"
 authors = [{ name = "Andrew Jordan", email = "andrewjordan3@gmail.com" }]
@@ -41,12 +41,12 @@ classifiers = [
 # Core runtime dependencies
 dependencies = [
     "atomicwrites>=1.4.0",
-    "pandas>=2.0.0",
+    "pandas>=2.2.0",
     "pyarrow>=14.0.0",
-    "pydantic>=2.0.0",
-    "pyyaml>=6.0",
+    "pydantic>=2.5.0",
+    "pyyaml>=6.0.2",
     "httpx>=0.28.0",
-    "tenacity>=9.1.0",
+    "tenacity>=9.1.2",
 ]
 
 # Python version requirements
