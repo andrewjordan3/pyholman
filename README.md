@@ -2,7 +2,7 @@
 
 Typed Python client for Holman's Customer Data API.
 
-![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![Typed (PEP 561)](https://img.shields.io/badge/typed-PEP%20561-blueviolet)
 
@@ -347,7 +347,7 @@ For corporate environments behind a TLS-inspecting proxy, add the
 pip install 'git+https://github.com/andrewjordan3/pyholman.git#egg=pyholman[system-certs]'
 ```
 
-Python 3.13 or newer is required. `uv` is the recommended environment
+Python 3.12 or newer is required. `uv` is the recommended environment
 manager for development (`uv pip install ...` works with both commands
 above), but any pip-compatible installer is fine.
 

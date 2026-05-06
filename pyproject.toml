@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 ###############################################################################
 [project]
 name = "pyholman"
-version = "0.1.0"
+version = "0.1.1"
 description = "Typed Python client for Holman's Customer Data API, with OAuth2 token management, retry-aware transport, and pandas-friendly response helpers."
 readme = "README.md"
 authors = [{ name = "Andrew Jordan", email = "andrewjordan3@gmail.com" }]
@@ -31,6 +31,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP :: HTTP Clients",
@@ -49,7 +50,7 @@ dependencies = [
 ]
 
 # Python version requirements
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 
 # Optional dependency groups
 [project.optional-dependencies]
@@ -113,7 +114,7 @@ pyholman = ["py.typed"]
 ###############################################################################
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py312"
 
 exclude = [
     ".git",
@@ -172,7 +173,7 @@ line-ending = "auto"
 # [tool.mypy] - STATIC TYPE CHECKING
 ###############################################################################
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
