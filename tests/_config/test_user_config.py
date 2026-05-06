@@ -17,6 +17,7 @@ from pyholman._config import (
     UserConfig,
     VehiclesResourceConfig,
 )
+from tests._helpers.env import patch_home_directory
 
 __all__: list[str] = []
 
@@ -170,7 +171,11 @@ class TestUserConfigFileErrors:
         missing: Path = tmp_path / 'does-not-exist.yaml'
         with pytest.raises(FileNotFoundError) as excinfo:
             UserConfig.from_yaml(missing)
-        assert str(missing) in str(excinfo.value)
+        # ``OSError.__str__`` formats ``filename`` via ``repr()`` (which
+        # doubles backslashes on Windows), so substring-matching the
+        # rendered message is platform-dependent. The structured
+        # ``filename`` attribute holds the raw path on every platform.
+        assert excinfo.value.filename == str(missing)
 
     def test_empty_yaml_rejected(self, tmp_path: Path) -> None:
         config_file: Path = _write_yaml(tmp_path, '')
@@ -219,7 +224,7 @@ class TestUserConfigWorkingDirectory:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        monkeypatch.setenv('HOME', str(tmp_path))
+        patch_home_directory(monkeypatch, tmp_path)
         payload: dict[str, object] = self._build_minimal_payload('~/pyholman_data')
         config: UserConfig = UserConfig.model_validate(payload)
         assert config.working_directory.is_absolute()
